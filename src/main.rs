@@ -6,6 +6,7 @@ mod runner;
 
 use std::collections::HashMap;
 use std::time::Duration;
+use std::env;
 
 use tokio::sync::watch;
 use tokio::time::sleep;
@@ -67,8 +68,17 @@ async fn main() -> Result<(), turborepo_ui::Error> {
                 .as_ref()
                 .map(|dep| ready_rxs.get(dep).expect("dep must exist").clone());
             let shutdown = shutdown_rx.clone();
+
+            // Normalize the working directory of every task
+            let current_dir_pathbuf = env::current_dir().expect("Failed to get current directory");
+            let current_dir_string: String = current_dir_pathbuf
+                .into_os_string()
+                .into_string()
+                .expect("Path is not valid UTF-8");
+            let current_dir = entry.work_dir.unwrap_or(current_dir_string).to_string();
+
             tokio::spawn(async move {
-                run_task(s, entry.name, entry.command, entry.ready_check, ready_tx, dep_rx, shutdown).await;
+                run_task(s, entry.name, entry.command, current_dir, entry.ready_check, ready_tx, dep_rx, shutdown).await;
             })
         })
         .collect();

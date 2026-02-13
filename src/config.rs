@@ -6,6 +6,7 @@ use ini::Ini;
 pub struct TaskEntry {
     pub name: String,
     pub command: String,
+    pub work_dir: Option<String>,
     pub depends_on: Option<String>,
     pub ready_check: Option<String>,
 }
@@ -22,11 +23,13 @@ pub fn parse_ini(path: &str) -> Vec<TaskEntry> {
         .filter_map(|(section, props)| {
             let name = section?.to_string();
             let command = props.get("command")?.to_string();
+            let work_dir = props.get("work_dir").map(|s| s.to_string());
             let depends_on = props.get("depends_on").map(|s| s.to_string());
             let ready_check = props.get("ready_check").map(|s| s.to_string());
             Some(TaskEntry {
                 name,
                 command,
+                work_dir,
                 depends_on,
                 ready_check,
             })

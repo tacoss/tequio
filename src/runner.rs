@@ -18,6 +18,7 @@ pub async fn run_task(
     sender: TuiSender,
     name: String,
     command: String,
+    work_dir: String,
     ready_check: Option<String>,
     ready_tx: watch::Sender<bool>,
     dep_rx: Option<watch::Receiver<bool>>,
@@ -58,6 +59,7 @@ pub async fn run_task(
 
     let child = Command::new("sh")
         .args(["-c", &command])
+        .current_dir(work_dir)
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .spawn();
