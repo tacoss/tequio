@@ -1531,6 +1531,7 @@ checksum = "e629b9b98ef3dd8afe6ca2bd0f89306cec16d43d907889945bc5d6687f2f13c7"
 [[package]]
 name = "globwalk"
 version = "0.1.0"
+source = "git+https://github.com/vercel/turborepo.git?branch=main#f2974352667b34063541bd3956fb7f85c0b963b7"
 dependencies = [
  "camino",
  "itertools 0.10.5",
@@ -3518,6 +3519,7 @@ dependencies = [
 [[package]]
 name = "turbopath"
 version = "0.1.0"
+source = "git+https://github.com/vercel/turborepo.git?branch=main#f2974352667b34063541bd3956fb7f85c0b963b7"
 dependencies = [
  "biome_deserialize 0.6.0",
  "biome_deserialize_macros 0.6.0",
@@ -3537,6 +3539,7 @@ dependencies = [
 [[package]]
 name = "turborepo-ci"
 version = "0.1.0"
+source = "git+https://github.com/vercel/turborepo.git?branch=main#f2974352667b34063541bd3956fb7f85c0b963b7"
 dependencies = [
  "chrono",
 ]
@@ -3544,6 +3547,7 @@ dependencies = [
 [[package]]
 name = "turborepo-errors"
 version = "0.1.0"
+source = "git+https://github.com/vercel/turborepo.git?branch=main#f2974352667b34063541bd3956fb7f85c0b963b7"
 dependencies = [
  "biome_deserialize 0.6.0",
  "biome_diagnostics",
@@ -3557,6 +3561,7 @@ dependencies = [
 [[package]]
 name = "turborepo-graph-utils"
 version = "0.1.0"
+source = "git+https://github.com/vercel/turborepo.git?branch=main#f2974352667b34063541bd3956fb7f85c0b963b7"
 dependencies = [
  "fixedbitset",
  "futures",
@@ -3570,6 +3575,7 @@ dependencies = [
 [[package]]
 name = "turborepo-lockfiles"
 version = "0.1.0"
+source = "git+https://github.com/vercel/turborepo.git?branch=main#f2974352667b34063541bd3956fb7f85c0b963b7"
 dependencies = [
  "biome_formatter",
  "biome_json_formatter",
@@ -3593,6 +3599,7 @@ dependencies = [
 [[package]]
 name = "turborepo-repository"
 version = "0.1.0"
+source = "git+https://github.com/vercel/turborepo.git?branch=main#f2974352667b34063541bd3956fb7f85c0b963b7"
 dependencies = [
  "anyhow",
  "async-once-cell",
@@ -3628,6 +3635,7 @@ dependencies = [
 [[package]]
 name = "turborepo-task-id"
 version = "0.1.0"
+source = "git+https://github.com/vercel/turborepo.git?branch=main#f2974352667b34063541bd3956fb7f85c0b963b7"
 dependencies = [
  "schemars",
  "serde",
@@ -3639,6 +3647,7 @@ dependencies = [
 [[package]]
 name = "turborepo-types"
 version = "0.1.0"
+source = "git+https://github.com/vercel/turborepo.git?branch=main#f2974352667b34063541bd3956fb7f85c0b963b7"
 dependencies = [
  "biome_deserialize 0.6.0",
  "biome_deserialize_macros 0.6.0",
@@ -3685,6 +3694,7 @@ dependencies = [
 [[package]]
 name = "turborepo-unescape"
 version = "0.1.0"
+source = "git+https://github.com/vercel/turborepo.git?branch=main#f2974352667b34063541bd3956fb7f85c0b963b7"
 dependencies = [
  "biome_deserialize 0.6.0",
  "schemars",
@@ -3696,6 +3706,7 @@ dependencies = [
 [[package]]
 name = "turborepo-vt100"
 version = "0.15.2"
+source = "git+https://github.com/vercel/turborepo.git?branch=main#f2974352667b34063541bd3956fb7f85c0b963b7"
 dependencies = [
  "itoa",
  "log",
@@ -3958,6 +3969,7 @@ dependencies = [
 [[package]]
 name = "wax"
 version = "0.6.0"
+source = "git+https://github.com/vercel/turborepo.git?branch=main#f2974352667b34063541bd3956fb7f85c0b963b7"
 dependencies = [
  "const_format",
  "itertools 0.11.0",
