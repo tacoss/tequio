@@ -1,11 +1,4 @@
 //! Spawn real processes from an INI config and display them in a TUI.
-//!
-//! The INI file uses a simple `name = command` format (one task per line).
-//! Lines starting with `#` and blank lines are ignored.
-//!
-//! Run with:
-//!   cargo run -- tasks.ini
-//!
 //! Use arrow keys to switch between tasks, 'q' to quit.
 
 mod config;
@@ -47,9 +40,12 @@ async fn main() -> Result<(), turborepo_ui::Error> {
     let stop_sender = sender.clone();
 
     // Spawn the TUI render loop.
-    let tui_handle = tokio::spawn(async move {
+    let mut tui_handle = tokio::spawn(async move {
         tui::run_app(task_names, receiver, color_config, &repo_root, 1000).await
     });
+
+    // Shutdown signal: when true, all tasks should kill their children and exit.
+    let (shutdown_tx, shutdown_rx) = watch::channel(false);
 
     // Build ready-signal channels for each task.
     let mut ready_txs: HashMap<String, watch::Sender<bool>> = HashMap::new();
@@ -70,19 +66,32 @@ async fn main() -> Result<(), turborepo_ui::Error> {
                 .depends_on
                 .as_ref()
                 .map(|dep| ready_rxs.get(dep).expect("dep must exist").clone());
+            let shutdown = shutdown_rx.clone();
             tokio::spawn(async move {
-                run_task(s, entry.name, entry.command, entry.ready_check, ready_tx, dep_rx).await;
+                run_task(s, entry.name, entry.command, entry.ready_check, ready_tx, dep_rx, shutdown).await;
             })
         })
         .collect();
 
-    for handle in handles {
-        handle.await.unwrap();
-    }
+    let all_tasks = async move {
+        for handle in handles {
+            handle.await.ok();
+        }
+    };
 
-    // Give the user a moment to see the final state, then stop.
-    sleep(Duration::from_secs(2)).await;
-    stop_sender.stop().await;
+    // Race between all tasks completing and TUI exiting (user pressed "q" or Ctrl+C).
+    tokio::select! {
+        _ = all_tasks => {
+            // All tasks finished naturally — give user a moment to see final state.
+            sleep(Duration::from_secs(2)).await;
+            stop_sender.stop().await;
+        }
+        _ = &mut tui_handle => {
+            // TUI exited (user pressed "q") — signal all tasks to shut down.
+            shutdown_tx.send(true).ok();
+            return Ok(());
+        }
+    }
 
     tui_handle.await.unwrap()?;
     Ok(())

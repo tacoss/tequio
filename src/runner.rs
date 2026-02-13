@@ -11,6 +11,9 @@ use turborepo_ui::tui::{self, TuiSender, event::OutputLogs};
 /// If `dep_rx` is provided, waits for the dependency to become ready before
 /// spawning. If `ready_check` is set, scans stdout for a matching line and
 /// signals `ready_tx` on match; otherwise signals ready immediately after spawn.
+///
+/// When `shutdown_rx` receives `true`, the child process is killed and the task
+/// is marked as failed.
 pub async fn run_task(
     sender: TuiSender,
     name: String,
@@ -18,18 +21,33 @@ pub async fn run_task(
     ready_check: Option<String>,
     ready_tx: watch::Sender<bool>,
     dep_rx: Option<watch::Receiver<bool>>,
+    mut shutdown_rx: watch::Receiver<bool>,
 ) {
     let mut task = sender.task(name.clone());
     task.start(OutputLogs::Full);
 
-    // Wait for dependency to become ready.
+    // Wait for dependency to become ready, racing against shutdown.
     if let Some(mut rx) = dep_rx {
         sender.status(
             name.clone(),
             "waiting".into(),
             tui::event::CacheResult::Miss,
         );
-        rx.wait_for(|&ready| ready).await.ok();
+        tokio::select! {
+            _ = rx.wait_for(|&ready| ready) => {}
+            _ = shutdown_rx.wait_for(|&v| v) => {
+                ready_tx.send(true).ok();
+                task.failed();
+                return;
+            }
+        }
+    }
+
+    // Check if shutdown was already requested before spawning.
+    if *shutdown_rx.borrow() {
+        ready_tx.send(true).ok();
+        task.failed();
+        return;
     }
 
     sender.status(
@@ -90,24 +108,44 @@ pub async fn run_task(
         })
     };
 
-    stdout_task.await.ok();
-    stderr_task.await.ok();
-
-    // Ensure dependents are unblocked even if ready_check was never matched.
-    ready_tx.send(true).ok();
-
-    let status = child.wait().await;
-    match status {
-        Ok(s) if s.success() => {
-            task.succeeded(false);
+    // Race between child completing and shutdown signal.
+    let shutdown_fut = async {
+        loop {
+            if shutdown_rx.changed().await.is_err() {
+                // Channel closed, wait forever (no shutdown).
+                std::future::pending::<()>().await;
+            }
+            if *shutdown_rx.borrow() {
+                break;
+            }
         }
-        Ok(s) => {
-            let code = s.code().unwrap_or(-1);
-            writeln!(task, "process exited with code {code}").ok();
-            task.failed();
+    };
+
+    tokio::select! {
+        status = child.wait() => {
+            stdout_task.await.ok();
+            stderr_task.await.ok();
+            ready_tx.send(true).ok();
+            match status {
+                Ok(s) if s.success() => {
+                    task.succeeded(false);
+                }
+                Ok(s) => {
+                    let code = s.code().unwrap_or(-1);
+                    writeln!(task, "process exited with code {code}").ok();
+                    task.failed();
+                }
+                Err(e) => {
+                    writeln!(task, "error waiting for process: {e}").ok();
+                    task.failed();
+                }
+            }
         }
-        Err(e) => {
-            writeln!(task, "error waiting for process: {e}").ok();
+        _ = shutdown_fut => {
+            child.kill().await.ok();
+            stdout_task.abort();
+            stderr_task.abort();
+            ready_tx.send(true).ok();
             task.failed();
         }
     }
