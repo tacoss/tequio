@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-const SPINNER_FRAMES: &[&str] = ["»"].as_slice();
+const SPINNER_FRAMES: &[&str] = ["⏸"].as_slice();
 // const SPINNER_FRAMES: &[&str] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇",
 // "⠏"].as_slice();
 const FRAMERATE: Duration = Duration::from_millis(80);
