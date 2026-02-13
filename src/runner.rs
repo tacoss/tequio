@@ -71,7 +71,7 @@ pub async fn run_task(
             let mut reader = BufReader::new(stdout).lines();
             while let Ok(Some(line)) = reader.next_line().await {
                 if let Some(ref check) = ready_check {
-                    if line.trim() == check.as_str() {
+                    if line.trim().contains(check.as_str()) {
                         ready_tx.send(true).ok();
                     }
                 }
