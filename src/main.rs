@@ -63,10 +63,11 @@ async fn main() -> Result<(), turborepo_ui::Error> {
         .map(|entry| {
             let s = sender.clone();
             let ready_tx = ready_txs.remove(&entry.name).unwrap();
-            let dep_rx = entry
+            let dep_rxs: Vec<watch::Receiver<bool>> = entry
                 .depends_on
-                .as_ref()
-                .map(|dep| ready_rxs.get(dep).expect("dep must exist").clone());
+                .iter()
+                .map(|dep| ready_rxs.get(dep).expect("dep must exist").clone())
+                .collect();
             let shutdown = shutdown_rx.clone();
 
             // Normalize the working directory of every task
@@ -78,7 +79,7 @@ async fn main() -> Result<(), turborepo_ui::Error> {
             let current_dir = entry.work_dir.unwrap_or(current_dir_string).to_string();
 
             tokio::spawn(async move {
-                run_task(s, entry.name, entry.command, current_dir, entry.ready_check, ready_tx, dep_rx, shutdown).await;
+                run_task(s, entry.name, entry.command, current_dir, entry.ready_check, ready_tx, dep_rxs, shutdown).await;
             })
         })
         .collect();

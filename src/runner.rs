@@ -8,7 +8,7 @@ use turborepo_ui::tui::{self, TuiSender, event::OutputLogs};
 
 /// Spawn a real command, piping its stdout/stderr into the TUI task pane.
 ///
-/// If `dep_rx` is provided, waits for the dependency to become ready before
+/// If `dep_rxs` is non-empty, waits for all dependencies to become ready before
 /// spawning. If `ready_check` is set, scans stdout for a matching line and
 /// signals `ready_tx` on match; otherwise signals ready immediately after spawn.
 ///
@@ -21,21 +21,26 @@ pub async fn run_task(
     work_dir: String,
     ready_check: Option<String>,
     ready_tx: watch::Sender<bool>,
-    dep_rx: Option<watch::Receiver<bool>>,
+    dep_rxs: Vec<watch::Receiver<bool>>,
     mut shutdown_rx: watch::Receiver<bool>,
 ) {
     let mut task = sender.task(name.clone());
     task.start(OutputLogs::Full);
 
-    // Wait for dependency to become ready, racing against shutdown.
-    if let Some(mut rx) = dep_rx {
+    // Wait for all dependencies to become ready, racing against shutdown.
+    if !dep_rxs.is_empty() {
         sender.status(
             name.clone(),
             "waiting".into(),
             tui::event::CacheResult::Miss,
         );
+        let wait_all = async {
+            for mut rx in dep_rxs {
+                rx.wait_for(|&ready| ready).await.ok();
+            }
+        };
         tokio::select! {
-            _ = rx.wait_for(|&ready| ready) => {}
+            _ = wait_all => {}
             _ = shutdown_rx.wait_for(|&v| v) => {
                 ready_tx.send(true).ok();
                 task.failed();

@@ -7,7 +7,7 @@ pub struct TaskEntry {
     pub name: String,
     pub command: String,
     pub work_dir: Option<String>,
-    pub depends_on: Option<String>,
+    pub depends_on: Vec<String>,
     pub ready_check: Option<String>,
 }
 
@@ -24,7 +24,10 @@ pub fn parse_ini(path: &str) -> Vec<TaskEntry> {
             let name = section?.to_string();
             let command = props.get("command")?.to_string();
             let work_dir = props.get("work_dir").map(|s| s.to_string());
-            let depends_on = props.get("depends_on").map(|s| s.to_string());
+            let depends_on: Vec<String> = props
+                .get("depends_on")
+                .map(|s| s.split(',').map(|d| d.trim().to_string()).collect())
+                .unwrap_or_default();
             let ready_check = props.get("ready_check").map(|s| s.to_string());
             Some(TaskEntry {
                 name,
@@ -51,7 +54,7 @@ pub fn topo_sort(entries: Vec<TaskEntry>) -> Vec<TaskEntry> {
     let mut adj: Vec<Vec<usize>> = vec![vec![]; n];
 
     for (i, entry) in entries.iter().enumerate() {
-        if let Some(dep) = &entry.depends_on {
+        for dep in &entry.depends_on {
             let &dep_idx = index_of.get(dep.as_str()).unwrap_or_else(|| {
                 panic!("task '{}' depends on unknown task '{}'", entry.name, dep)
             });

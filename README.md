@@ -51,7 +51,7 @@ depends_on = build
 |-------|----------|-------------|
 | `command` | yes | Shell command to execute (run via `sh -c`) |
 | `work_dir` | no | Set the working directory for the executed task |
-| `depends_on` | no | Name of another task that must be ready first |
+| `depends_on` | no | Name of another task(s) that must be ready first (comma-separated list for one or more tasks) |
 | `ready_check` | no | Substring to look for in stdout to signal readiness. If omitted, the task is considered ready as soon as it starts |
 
 ## Building
