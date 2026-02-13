@@ -25,20 +25,30 @@ use turborepo_ui::{
 struct TaskEntry {
     name: String,
     command: String,
+    depends_on: Option<String>,
+    ready_check: Option<String>,
 }
 
 /// Parse an INI file into task entries.
 ///
-/// Each key/value pair in the general (unnamed) section is treated as `name = command`.
+/// Each named section becomes a task. The section name is the task name,
+/// and `command`, `depends_on`, and `ready_check` are read from the section's keys.
 fn parse_ini(path: &str) -> Vec<TaskEntry> {
     let ini = Ini::load_from_file(path)
         .unwrap_or_else(|e| panic!("failed to read config file '{path}': {e}"));
 
-    ini.general_section()
-        .iter()
-        .map(|(name, command)| TaskEntry {
-            name: name.to_string(),
-            command: command.to_string(),
+    ini.iter()
+        .filter_map(|(section, props)| {
+            let name = section?.to_string();
+            let command = props.get("command")?.to_string();
+            let depends_on = props.get("depends_on").map(|s| s.to_string());
+            let ready_check = props.get("ready_check").map(|s| s.to_string());
+            Some(TaskEntry {
+                name,
+                command,
+                depends_on,
+                ready_check,
+            })
         })
         .collect()
 }
