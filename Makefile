@@ -1,6 +1,6 @@
 run:
-	@cargo run -p turborepo-ui --example two_processes -- crates/turborepo-ui/examples/tasks.ini
+	@cargo run -- tasks.ini
 build:
-	@cargo build -p turborepo-ui --example two_processes --release 2>&1
+	@cargo build --release 2>&1
 install:
-	@sudo cp target/release/examples/two_processes /usr/local/bin/two_processes
+	@cp target/release/task-runner-tui $(HOME)/.local/bin/tui

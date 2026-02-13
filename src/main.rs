@@ -11,6 +11,7 @@
 use std::io::Write;
 use std::time::Duration;
 
+use ini::Ini;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use tokio::time::sleep;
@@ -26,25 +27,18 @@ struct TaskEntry {
     command: String,
 }
 
-/// Parse a simple INI file into task entries.
+/// Parse an INI file into task entries.
 ///
-/// Each non-empty, non-comment line is expected to be `name = command`.
+/// Each key/value pair in the general (unnamed) section is treated as `name = command`.
 fn parse_ini(path: &str) -> Vec<TaskEntry> {
-    let content = std::fs::read_to_string(path)
+    let ini = Ini::load_from_file(path)
         .unwrap_or_else(|e| panic!("failed to read config file '{path}': {e}"));
 
-    content
-        .lines()
-        .filter_map(|line| {
-            let line = line.trim();
-            if line.is_empty() || line.starts_with('#') {
-                return None;
-            }
-            let (name, command) = line.split_once('=')?;
-            Some(TaskEntry {
-                name: name.trim().to_string(),
-                command: command.trim().to_string(),
-            })
+    ini.general_section()
+        .iter()
+        .map(|(name, command)| TaskEntry {
+            name: name.to_string(),
+            command: command.to_string(),
         })
         .collect()
 }

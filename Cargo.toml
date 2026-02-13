@@ -7,3 +7,4 @@ edition = "2024"
 tokio = { version = "1.25.0", features = ["full"] }
 turborepo-ui = { git = "https://github.com/vercel/turborepo.git", branch = "main" }
 turbopath = { git = "https://github.com/vercel/turborepo.git", branch = "main" }
+rust-ini = "0.21.3"
