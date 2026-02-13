@@ -5,6 +5,6 @@ edition = "2024"
 
 [dependencies]
 tokio = { version = "1.25.0", features = ["full"] }
-turborepo-ui = { git = "https://github.com/vercel/turborepo.git", branch = "main" }
-turbopath = { git = "https://github.com/vercel/turborepo.git", branch = "main" }
+turborepo-ui = { path = "vendor/turborepo/crates/turborepo-ui" }
+turbopath = { path = "vendor/turborepo/crates/turborepo-paths" }
 rust-ini = "0.21.3"
