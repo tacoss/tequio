@@ -1,6 +1,8 @@
+dev:
+	@npx sirv-cli . --dev
 run:
-	@cargo run -- tasks.ini
+	@cargo run -- tequio.ini
 build:
 	@cargo build --release 2>&1
 install:
-	@cp target/release/task-runner-tui $(HOME)/.local/bin/tui
+	@cp target/release/tequio $(HOME)/.local/bin/tequio

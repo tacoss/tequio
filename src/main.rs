@@ -22,7 +22,7 @@ use runner::run_task;
 async fn main() -> Result<(), turborepo_ui::Error> {
     let config_path = std::env::args()
         .nth(1)
-        .unwrap_or_else(|| "tasks.ini".into());
+        .unwrap_or_else(|| "tequio.ini".into());
 
     let entries = parse_ini(&config_path);
     if entries.is_empty() {

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tequio — Local Dev Task Runner</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            mono: ['JetBrains Mono', 'monospace'],
+            sans: ['Outfit', 'sans-serif'],
+          },
+          colors: {
+            surface: {
+              900: '#0a0a0f',
+              800: '#12121a',
+              700: '#1a1a25',
+              600: '#24243a',
+            },
+            accent: {
+              DEFAULT: '#22d3a7',
+              dim: '#1a9e7e',
+              glow: 'rgba(34, 211, 167, 0.15)',
+            },
+            muted: '#6b7280',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #0a0a0f; }
+
+    .terminal-window {
+      background: #12121a;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      box-shadow: 0 0 80px rgba(34, 211, 167, 0.04), 0 20px 60px rgba(0,0,0,0.5);
+    }
+
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+
+    .cursor-blink::after {
+      content: '▌';
+      animation: blink 1s step-end infinite;
+      color: #22d3a7;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-up {
+      animation: fadeUp 0.6s ease-out both;
+    }
+
+    .fade-up-d1 { animation-delay: 0.1s; }
+    .fade-up-d2 { animation-delay: 0.2s; }
+    .fade-up-d3 { animation-delay: 0.35s; }
+    .fade-up-d4 { animation-delay: 0.5s; }
+
+    .feature-card {
+      background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      border: 1px solid rgba(255,255,255,0.05);
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    .feature-card:hover {
+      border-color: rgba(34, 211, 167, 0.2);
+      box-shadow: 0 0 30px rgba(34, 211, 167, 0.05);
+    }
+
+    .grain {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.025;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+  </style>
+</head>
+<body class="font-sans text-gray-300 antialiased relative overflow-x-hidden">
+  <div class="grain"></div>
+
+  <!-- NAV -->
+  <nav class="relative z-10 max-w-2xl mx-auto flex items-center justify-between px-6 py-6">
+    <div class="flex items-center gap-2">
+      <span class="text-accent font-mono font-bold text-lg tracking-tight">▸</span>
+      <span class="font-sans font-semibold text-white text-lg tracking-tight">tequio</span>
+    </div>
+    <div class="flex items-center gap-8 text-sm text-muted">
+      <a href="#install" class="hover:text-white transition-colors">Install</a>
+      <a href="#config" class="hover:text-white transition-colors">Config</a>
+      <a href="#" class="bg-accent/10 text-accent px-4 py-1.5 rounded-lg font-medium hover:bg-accent/20 transition-colors">GitHub</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="relative z-10 max-w-2xl mx-auto px-6 pt-20 my-24">
+    <div class="max-w-2xl text-center">
+      <p class="fade-up text-accent font-mono text-sm mb-4 tracking-wide">Local development, simplified</p>
+      <h1 class="fade-up fade-up-d1 font-sans font-bold text-white text-5xl md:text-6xl leading-[1.1] tracking-tight mb-6">
+        Run your dev tasks<br/>from one place.
+      </h1>
+      <p class="fade-up fade-up-d2 text-lg text-gray-400 leading-relaxed mb-10">
+        Tequio is a terminal-first task runner that orchestrates your local development workflow — databases, servers, builds, and more — with a single command.
+      </p>
+    </div>
+
+    <!-- Terminal mockup -->
+    <div class="fade-up fade-up-d4 mt-16 terminal-window p-0 overflow-hidden max-w-lg m-auto">
+      <div class="flex items-center gap-2 px-5 py-3 border-b border-white/5">
+        <span class="dot bg-[#ff5f57]"></span>
+        <span class="dot bg-[#febc2e]"></span>
+        <span class="dot bg-[#28c840]"></span>
+        <span class="ml-3 text-xs text-muted font-mono">~/my-project</span>
+      </div>
+      <pre class="p-6 font-mono text-sm leading-7">
+  Tasks (/ - Search)    │ await-10s > running
+   »  await-10s         │█
+   <span class="text-accent">▸</span>  example-task      │
+   <span class="text-accent">▸</span>  list-files        │
+                        │
+                        │
+  ↑ ↓ - Select          │
+  m - More binds        │   u/d - Scroll logs   [...]</pre>
+    </div>
+  </section>
+
+  <!-- INSTALL -->
+  <section id="install" class="relative z-10 max-w-2xl mx-auto px-6 my-24">
+    <div class="text-center">
+        <h2 class="font-sans font-semibold text-white text-3xl tracking-tight mb-4">Get it and install it!</h2>
+        <p class="text-gray-400 mb-8">For now, the only way is by cloning or downloading the repository.</p>
+    </div>
+
+    <div class="flex flex-col gap-5 max-w-lg m-auto">
+      <div class="terminal-window p-5">
+        <p class="text-xs text-muted font-mono mb-3 uppercase tracking-wider">Download</p>
+        <p class="font-mono text-sm"><span class="text-accent">$</span> git clone https://github.com/tacoss/tequio.git</p>
+        <p class="font-mono text-sm"><span class="text-accent">$</span> cd tequio</p>
+        <p class="text-xs text-muted font-mono my-3 uppercase tracking-wider">Compile &amp; Install</p>
+        <p class="font-mono text-sm"><span class="text-accent">$</span> make build install</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONFIG EXAMPLE -->
+  <section id="config" class="relative z-10 max-w-2xl mx-auto px-6 my-24">
+    <div class="text-center">
+        <h2 class="font-sans font-semibold text-white text-3xl tracking-tight mb-4">Simple configuration</h2>
+        <p class="text-gray-400 mb-8">A single INI file describes your entire local environment:</p>
+    </div>
+
+    <div class="terminal-window p-0 overflow-hidden max-w-lg m-auto">
+      <div class="flex items-center gap-2 px-5 py-3 border-b border-white/5">
+        <span class="text-xs text-muted font-mono">tequio.ini</span>
+      </div>
+      <pre class="p-6 font-mono text-sm leading-7 text-gray-400"><span class="text-white">[example-task]</span>
+<span class="text-gray-500">command</span> = <span class="text-accent">sleep 3 && echo "Hello from the task runner!"</span>
+<span class="text-gray-500">ready_check</span> = <span class="text-accent">task runner!</span>
+
+<span class="text-white">[list-files]</span>
+<span class="text-gray-500">command</span> = <span class="text-accent">ls -la</span>
+<span class="text-gray-500">depends_on</span> = <span class="text-accent">example-task</span>
+
+<span class="text-white">[await-10s]</span>
+<span class="text-gray-500">command</span> = <span class="text-accent">sleep 5</span>
+<span class="text-gray-500">depends_on</span> = <span class="text-accent">list-files</span></pre>
+    </div>
+  </section>
+</body>
+</html>
