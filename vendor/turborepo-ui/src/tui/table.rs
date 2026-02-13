@@ -84,7 +84,7 @@ impl<'b> TaskTable<'b> {
                     } else {
                         Style::default().green().bold()
                     };
-                    Span::styled(" ✓ ", style)
+                    Span::styled(" ▸ ", style)
                 }
                 TaskResult::CacheHit => {
                     let style = if self.should_dim_task(task.name()) {
