@@ -71,12 +71,7 @@ async fn main() -> Result<(), turborepo_ui::Error> {
             let shutdown = shutdown_rx.clone();
 
             // Normalize the working directory of every task
-            let current_dir_pathbuf = env::current_dir().expect("Failed to get current directory");
-            let current_dir_string: String = current_dir_pathbuf
-                .into_os_string()
-                .into_string()
-                .expect("Path is not valid UTF-8");
-            let current_dir = entry.work_dir.unwrap_or(current_dir_string).to_string();
+            let current_dir = resolve_work_dir(entry.work_dir.as_deref());
 
             tokio::spawn(async move {
                 run_task(s, entry.name, entry.command, current_dir, entry.ready_check, ready_tx, dep_rxs, shutdown).await;
@@ -106,4 +101,13 @@ async fn main() -> Result<(), turborepo_ui::Error> {
 
     tui_handle.await.unwrap()?;
     Ok(())
+}
+
+fn resolve_work_dir(entry_work_dir: Option<&str>) -> String {
+    let current_dir_pathbuf = env::current_dir().expect("Failed to get current directory");
+    let current_dir_string: String = current_dir_pathbuf
+        .into_os_string()
+        .into_string()
+        .expect("Path is not valid UTF-8");
+    entry_work_dir.unwrap_or(&current_dir_string).to_string()
 }
