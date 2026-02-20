@@ -124,7 +124,7 @@ fn translate_key_event(options: InputOptions, key_event: KeyEvent) -> Option<Eve
             Some(Event::SearchEnterChar(c))
         }
         // Fall through if we aren't in interactive mode
-        KeyCode::Char('q') => Some(Event::InternalStop),
+        // KeyCode::Char('q') => Some(Event::InternalStop),
         KeyCode::Char('h') => Some(Event::ToggleSidebar),
         KeyCode::Char('u') => Some(Event::ScrollUp),
         KeyCode::Char('d') => Some(Event::ScrollDown),

@@ -1,14 +1,16 @@
 //! Spawn real processes from an INI config and display them in a TUI.
-//! Use arrow keys to switch between tasks, 'q' to quit.
+//! Use arrow keys to switch between tasks.
 
 mod config;
+mod pidfile;
 mod runner;
 
 use std::collections::HashMap;
+use std::sync::Arc;
 use std::time::Duration;
 use std::env;
 
-use tokio::sync::watch;
+use tokio::sync::{Mutex, watch};
 use tokio::time::sleep;
 use turbopath::AbsoluteSystemPathBuf;
 use turborepo_ui::{
@@ -17,6 +19,7 @@ use turborepo_ui::{
 };
 
 use config::{parse_ini, topo_sort};
+use pidfile::PidFile;
 use runner::run_task;
 
 #[tokio::main]
@@ -30,6 +33,10 @@ async fn main() -> Result<(), turborepo_ui::Error> {
         eprintln!("no tasks found in '{config_path}'");
         std::process::exit(1);
     }
+
+    let mut pidfile = PidFile::new();
+    pidfile.load_and_kill_existing().await;
+    let pidfile = Arc::new(Mutex::new(pidfile));
 
     let entries = topo_sort(entries);
     let task_names: Vec<String> = entries.iter().map(|e| e.name.clone()).collect();
@@ -69,15 +76,21 @@ async fn main() -> Result<(), turborepo_ui::Error> {
                 .map(|dep| ready_rxs.get(dep).expect("dep must exist").clone())
                 .collect();
             let shutdown = shutdown_rx.clone();
+            let pf = pidfile.clone();
 
             // Normalize the working directory of every task
             let current_dir = resolve_work_dir(entry.work_dir.as_deref());
 
             tokio::spawn(async move {
-                run_task(s, entry.name, entry.command, current_dir, entry.ready_check, ready_tx, dep_rxs, shutdown).await;
+                run_task(s, entry.name, entry.command, current_dir, entry.ready_check, ready_tx, dep_rxs, shutdown, pf).await;
             })
         })
         .collect();
+
+    let ctrl_c = tokio::signal::ctrl_c();
+
+    #[cfg(unix)]
+    let mut sigterm = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()).ok();
 
     let all_tasks = async move {
         for handle in handles {
@@ -85,21 +98,46 @@ async fn main() -> Result<(), turborepo_ui::Error> {
         }
     };
 
-    // Race between all tasks completing and TUI exiting (user pressed "q" or Ctrl+C).
+    #[cfg(unix)]
+    let sigterm_fut = async {
+        if let Some(ref mut sig) = sigterm {
+            sig.recv().await;
+        } else {
+            std::future::pending::<()>().await;
+        }
+    };
+
+    #[cfg(not(unix))]
+    let sigterm_fut = std::future::pending::<()>();
+
+    // Race between all tasks completing, TUI exit, Ctrl+C, and SIGTERM.
     tokio::select! {
         _ = all_tasks => {
-            // All tasks finished naturally — give user a moment to see final state.
             sleep(Duration::from_secs(2)).await;
             stop_sender.stop().await;
         }
         _ = &mut tui_handle => {
-            // TUI exited (user pressed "q") — signal all tasks to shut down.
             shutdown_tx.send(true).ok();
-            return Ok(());
+        }
+        _ = ctrl_c => {
+            shutdown_tx.send(true).ok();
+            stop_sender.stop().await;
+        }
+        _ = sigterm_fut => {
+            shutdown_tx.send(true).ok();
+            stop_sender.stop().await;
         }
     }
 
-    tui_handle.await.unwrap()?;
+    // Wait for all processes to be killed before cleanup.
+    sleep(Duration::from_millis(500)).await;
+
+    // Clean up pidfile (processes should be gone by now).
+    if let Some(pf) = Arc::try_unwrap(pidfile).ok() {
+        pf.into_inner().cleanup().await;
+    }
+
+    let _ = tui_handle.await;
     Ok(())
 }
 

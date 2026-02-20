@@ -10,7 +10,7 @@ A task orchestration CLI that runs shell commands with dependency resolution and
 - **Dependency resolution** — tasks are topologically sorted and wait for their dependencies before starting
 - **Ready checks** — a task can declare a substring pattern that signals when it's ready, so dependents don't have to wait for full completion
 - **Interactive TUI** — real-time output from all tasks displayed in a terminal interface powered by a vendored fork of turborepo-ui
-- **Graceful shutdown** — press `q` to kill all running processes and exit cleanly
+- **Graceful shutdown** — press `Ctrl+C` to kill all running processes and exit cleanly
 
 ## Usage
 

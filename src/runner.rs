@@ -3,17 +3,11 @@ use std::sync::Arc;
 
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
-use tokio::sync::watch;
+use tokio::sync::{Mutex, watch};
 use turborepo_ui::tui::{self, TuiSender, event::OutputLogs};
 
-/// Spawn a real command, piping its stdout/stderr into the TUI task pane.
-///
-/// If `dep_rxs` is non-empty, waits for all dependencies to become ready before
-/// spawning. If `ready_check` is set, scans stdout for a matching line and
-/// signals `ready_tx` on match; otherwise signals ready immediately after spawn.
-///
-/// When `shutdown_rx` receives `true`, the child process is killed and the task
-/// is marked as failed.
+use crate::pidfile::PidFile;
+
 pub async fn run_task(
     sender: TuiSender,
     name: String,
@@ -23,11 +17,11 @@ pub async fn run_task(
     ready_tx: watch::Sender<bool>,
     dep_rxs: Vec<watch::Receiver<bool>>,
     mut shutdown_rx: watch::Receiver<bool>,
+    pidfile: Arc<Mutex<PidFile>>,
 ) {
     let mut task = sender.task(name.clone());
     task.start(OutputLogs::Full);
 
-    // Wait for all dependencies to become ready, racing against shutdown.
     if !dep_rxs.is_empty() {
         sender.status(
             name.clone(),
@@ -49,7 +43,6 @@ pub async fn run_task(
         }
     }
 
-    // Check if shutdown was already requested before spawning.
     if *shutdown_rx.borrow() {
         ready_tx.send(true).ok();
         task.failed();
@@ -79,7 +72,11 @@ pub async fn run_task(
         }
     };
 
-    // If there is no ready_check, the task is ready as soon as it starts.
+    let pid = child.id().unwrap_or(0);
+    if pid > 0 {
+        pidfile.lock().await.register(pid);
+    }
+
     if ready_check.is_none() {
         ready_tx.send(true).ok();
     }
@@ -88,7 +85,6 @@ pub async fn run_task(
     let stdout = child.stdout.take().unwrap();
     let stderr = child.stderr.take().unwrap();
 
-    // Read stdout and stderr concurrently, writing lines to the TUI.
     let stdout_task = {
         let mut task = sender.task(name.clone());
         let ready_tx = ready_tx.clone();
@@ -115,11 +111,9 @@ pub async fn run_task(
         })
     };
 
-    // Race between child completing and shutdown signal.
     let shutdown_fut = async {
         loop {
             if shutdown_rx.changed().await.is_err() {
-                // Channel closed, wait forever (no shutdown).
                 std::future::pending::<()>().await;
             }
             if *shutdown_rx.borrow() {
@@ -133,6 +127,9 @@ pub async fn run_task(
             stdout_task.await.ok();
             stderr_task.await.ok();
             ready_tx.send(true).ok();
+            if pid > 0 {
+                pidfile.lock().await.unregister(pid);
+            }
             match status {
                 Ok(s) if s.success() => {
                     task.succeeded(false);
@@ -149,7 +146,12 @@ pub async fn run_task(
             }
         }
         _ = shutdown_fut => {
-            child.kill().await.ok();
+            if pid > 0 {
+                let _ = kill_tree::tokio::kill_tree(pid).await;
+                pidfile.lock().await.unregister(pid);
+            } else {
+                child.kill().await.ok();
+            }
             stdout_task.abort();
             stderr_task.abort();
             ready_tx.send(true).ok();

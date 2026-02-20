@@ -5,4 +5,4 @@ run:
 build:
 	@cargo build --release 2>&1
 install:
-	@cp target/release/tequio $(HOME)/.local/bin/tequio
+	@cp target/release/tequio $(HOME)/.local/bin/tequio-dev

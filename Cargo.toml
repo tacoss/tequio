@@ -8,3 +8,7 @@ tokio = { version = "1.25.0", features = ["full"] }
 turborepo-ui = { path = "vendor/turborepo-ui" }
 turbopath = { git = "https://github.com/vercel/turborepo.git", branch = "main" }
 rust-ini = "0.21.3"
+kill_tree = { version = "0.2", features = ["tokio"] }
+
+[target.'cfg(unix)'.dependencies]
+nix = { version = "0.29", features = ["signal", "process"] }
