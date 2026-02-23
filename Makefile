@@ -3,7 +3,7 @@ dev:
 run:
 	@cargo run -- tequio.ini
 build:
-	@cargo build --release 2>&1
+	@RUSTC_BOOTSTRAP=1 cargo build --release 2>&1
 install:
 	@cp target/release/tequio $(HOME)/.local/bin/tequio
 

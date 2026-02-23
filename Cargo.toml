@@ -6,9 +6,10 @@ edition = "2024"
 [dependencies]
 tokio = { version = "1.25.0", features = ["full"] }
 turborepo-ui = { path = "vendor/turborepo-ui" }
-turbopath = { git = "https://github.com/vercel/turborepo.git", branch = "main" }
+turbopath = { git = "https://github.com/vercel/turborepo.git", tag = "v2.8.9" }
 rust-ini = "0.21.3"
 kill_tree = { version = "0.2", features = ["tokio"] }
+clap = { version = "4", features = ["derive"] }
 
 [target.'cfg(unix)'.dependencies]
 nix = { version = "0.29", features = ["signal", "process"] }

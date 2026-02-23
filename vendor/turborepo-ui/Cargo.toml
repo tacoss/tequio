@@ -35,10 +35,10 @@ thiserror = "2.0.18"
 tokio = "1.25.0"
 tracing = "0.1.37"
 tui-term = { version = "0.3.1", default-features = false }
-turbopath = { git = "https://github.com/vercel/turborepo.git", branch = "main" }
-turborepo-ci = { git = "https://github.com/vercel/turborepo.git", branch = "main" }
-turborepo-types = { git = "https://github.com/vercel/turborepo.git", branch = "main" }
-turborepo-vt100 = { git = "https://github.com/vercel/turborepo.git", branch = "main" }
+turbopath = { git = "https://github.com/vercel/turborepo.git", tag = "v2.8.9" }
+turborepo-ci = { git = "https://github.com/vercel/turborepo.git", tag = "v2.8.9" }
+turborepo-types = { git = "https://github.com/vercel/turborepo.git", tag = "v2.8.9" }
+turborepo-vt100 = { git = "https://github.com/vercel/turborepo.git", tag = "v2.8.9" }
 which = "4.4.0"
 
 [target."cfg(windows)".dependencies]
