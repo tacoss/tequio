@@ -14,20 +14,23 @@ impl PidFile {
         Self { path, pids: HashSet::new() }
     }
 
-    pub async fn load_and_kill_existing(&mut self) {
+    pub async fn load_and_kill_existing(&mut self) -> usize {
         if !self.path.exists() {
-            return;
+            return 0;
         }
         let contents = match fs::read_to_string(&self.path) {
             Ok(c) => c,
-            Err(_) => return,
+            Err(_) => return 0,
         };
+        let mut count = 0;
         for line in contents.lines() {
             if let Ok(pid) = line.trim().parse::<u32>() {
                 Self::kill_pid_tree(pid).await;
+                count += 1;
             }
         }
         let _ = fs::remove_file(&self.path);
+        count
     }
 
     pub fn register(&mut self, pid: u32) {

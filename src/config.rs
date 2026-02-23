@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 use ini::Ini;
 
@@ -81,5 +81,44 @@ pub fn topo_sort(entries: Vec<TaskEntry>) -> Vec<TaskEntry> {
     }
 
     let mut slots: Vec<Option<TaskEntry>> = entries.into_iter().map(Some).collect();
-    order.into_iter().map(|i| slots[i].take().unwrap()).collect()
+    order
+        .into_iter()
+        .map(|i| slots[i].take().unwrap())
+        .collect()
+}
+
+pub fn filter_tasks(entries: Vec<TaskEntry>, requested: &[String]) -> Vec<TaskEntry> {
+    if requested.is_empty() {
+        return entries;
+    }
+
+    let name_to_idx: HashMap<&str, usize> = entries
+        .iter()
+        .enumerate()
+        .map(|(i, e)| (e.name.as_str(), i))
+        .collect();
+
+    for name in requested {
+        if !name_to_idx.contains_key(name.as_str()) {
+            eprintln!("error: task '{name}' not found in config");
+            std::process::exit(1);
+        }
+    }
+
+    let mut reachable: HashSet<String> = requested.iter().cloned().collect();
+    let mut queue: VecDeque<String> = VecDeque::from_iter(requested.iter().cloned());
+
+    while let Some(name) = queue.pop_front() {
+        let idx = name_to_idx[name.as_str()];
+        for dep in &entries[idx].depends_on {
+            if reachable.insert(dep.clone()) {
+                queue.push_back(dep.clone());
+            }
+        }
+    }
+
+    entries
+        .into_iter()
+        .filter(|e| reachable.contains(e.name.as_str()))
+        .collect()
 }

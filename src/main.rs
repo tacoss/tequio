@@ -10,6 +10,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use std::env;
 
+use clap::Parser;
 use tokio::sync::{Mutex, watch};
 use tokio::time::sleep;
 use turbopath::AbsoluteSystemPathBuf;
@@ -18,21 +19,42 @@ use turborepo_ui::{
     tui::{self, TuiSender},
 };
 
-use config::{parse_ini, topo_sort};
+use config::{parse_ini, topo_sort, filter_tasks};
 use pidfile::PidFile;
 use runner::run_task;
 
+#[derive(Parser)]
+struct Cli {
+    /// Path to INI config file
+    #[arg(long, short, default_value = "tequio.ini")]
+    config: String,
+
+    /// Stop orphan processes from pidfile and exit
+    #[arg(long)]
+    stop: bool,
+
+    /// Tasks to run (default: all)
+    tasks: Vec<String>,
+}
+
 #[tokio::main]
 async fn main() -> Result<(), turborepo_ui::Error> {
-    let config_path = std::env::args()
-        .nth(1)
-        .unwrap_or_else(|| "tequio.ini".into());
+    let cli = Cli::parse();
 
-    let entries = parse_ini(&config_path);
+    if cli.stop {
+        let mut pidfile = PidFile::new();
+        let count = pidfile.load_and_kill_existing().await;
+        println!("stopped {} orphan process(es)", count);
+        return Ok(());
+    }
+
+    let entries = parse_ini(&cli.config);
     if entries.is_empty() {
-        eprintln!("no tasks found in '{config_path}'");
+        eprintln!("no tasks found in '{}'", cli.config);
         std::process::exit(1);
     }
+
+    let entries = filter_tasks(entries, &cli.tasks);
 
     let mut pidfile = PidFile::new();
     pidfile.load_and_kill_existing().await;
