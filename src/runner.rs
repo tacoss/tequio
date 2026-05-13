@@ -55,9 +55,16 @@ pub async fn run_task(
         tui::event::CacheResult::Miss,
     );
 
+    let asdf_path = {
+        let home = std::env::var("HOME").unwrap_or_default();
+        let current = std::env::var("PATH").unwrap_or_default();
+        format!("{home}/.asdf/shims:{current}")
+    };
+
     let child = Command::new("sh")
         .args(["-c", &command])
         .current_dir(work_dir)
+        .env("PATH", asdf_path)
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .spawn();

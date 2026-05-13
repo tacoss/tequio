@@ -223,6 +223,7 @@ fn run_install(entries: Vec<config::TaskEntry>, repo_dir_override: Option<&str>,
             .arg("-c")
             .arg(cmd)
             .current_dir(&work_dir)
+            .env("PATH", asdf_path())
             .status()
             .map(|s| s.success())
             .unwrap_or(false);
@@ -259,6 +260,7 @@ fn run_preflight(entries: Vec<config::TaskEntry>, work_dir_override: Option<&str
             .arg("-c")
             .arg(cmd)
             .current_dir(&work_dir)
+            .env("PATH", asdf_path())
             .status()
             .map(|s| s.success())
             .unwrap_or(false);
@@ -276,6 +278,14 @@ fn run_preflight(entries: Vec<config::TaskEntry>, work_dir_override: Option<&str
     if failed > 0 {
         std::process::exit(1);
     }
+}
+
+/// Returns PATH with ~/.asdf/shims prepended so asdf-managed binaries are always reachable,
+/// regardless of whether the parent shell had asdf initialized.
+fn asdf_path() -> String {
+    let home = std::env::var("HOME").unwrap_or_default();
+    let current = std::env::var("PATH").unwrap_or_default();
+    format!("{home}/.asdf/shims:{current}")
 }
 
 fn resolve_work_dir(entry_work_dir: Option<&str>) -> String {
