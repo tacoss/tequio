@@ -219,7 +219,7 @@ fn run_install(entries: Vec<config::TaskEntry>, repo_dir_override: Option<&str>,
                 .or(entry.work_dir.as_deref())
         );
         println!("[ {} ] {}", entry.name, cmd);
-        let ok = std::process::Command::new("sh")
+        let ok = std::process::Command::new("bash")
             .arg("-c")
             .arg(cmd)
             .current_dir(&work_dir)
@@ -256,7 +256,7 @@ fn run_preflight(entries: Vec<config::TaskEntry>, work_dir_override: Option<&str
 
         println!("[ {} ] {}", entry.name, cmd);
         let work_dir = resolve_work_dir(work_dir_override.or(entry.work_dir.as_deref()));
-        let ok = std::process::Command::new("sh")
+        let ok = std::process::Command::new("bash")
             .arg("-c")
             .arg(cmd)
             .current_dir(&work_dir)

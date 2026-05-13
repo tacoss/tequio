@@ -61,7 +61,7 @@ pub async fn run_task(
         format!("{home}/.asdf/shims:{current}")
     };
 
-    let child = Command::new("sh")
+    let child = Command::new("bash")
         .args(["-c", &command])
         .current_dir(work_dir)
         .env("PATH", asdf_path)
