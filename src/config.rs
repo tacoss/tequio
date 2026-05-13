@@ -9,6 +9,7 @@ pub struct TaskEntry {
     pub work_dir: Option<String>,
     pub depends_on: Vec<String>,
     pub ready_check: Option<String>,
+    pub preflight: Option<String>,
 }
 
 /// Parse an INI file into task entries.
@@ -29,12 +30,14 @@ pub fn parse_ini(path: &str) -> Vec<TaskEntry> {
                 .map(|s| s.split(',').map(|d| d.trim().to_string()).collect())
                 .unwrap_or_default();
             let ready_check = props.get("ready_check").map(|s| s.to_string());
+            let preflight = props.get("preflight").map(|s| s.to_string());
             Some(TaskEntry {
                 name,
                 command,
                 work_dir,
                 depends_on,
                 ready_check,
+                preflight,
             })
         })
         .collect()

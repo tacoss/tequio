@@ -33,6 +33,10 @@ struct Cli {
     #[arg(long)]
     stop: bool,
 
+    /// Run preflight checks (lint/test/build) defined in tequio.ini and exit
+    #[arg(long)]
+    preflight: bool,
+
     /// Tasks to run (default: all)
     tasks: Vec<String>,
 }
@@ -45,6 +49,17 @@ async fn main() -> Result<(), turborepo_ui::Error> {
         let mut pidfile = PidFile::new();
         let count = pidfile.load_and_kill_existing().await;
         println!("stopped {} orphan process(es)", count);
+        return Ok(());
+    }
+
+    if cli.preflight {
+        let entries = parse_ini(&cli.config);
+        if entries.is_empty() {
+            eprintln!("no tasks found in '{}'", cli.config);
+            std::process::exit(1);
+        }
+        let entries = filter_tasks(entries, &cli.tasks);
+        run_preflight(entries);
         return Ok(());
     }
 
@@ -161,6 +176,42 @@ async fn main() -> Result<(), turborepo_ui::Error> {
 
     let _ = tui_handle.await;
     Ok(())
+}
+
+fn run_preflight(entries: Vec<config::TaskEntry>) {
+    let mut passed = 0usize;
+    let mut failed = 0usize;
+    let mut skipped = 0usize;
+
+    for entry in &entries {
+        let Some(cmd) = &entry.preflight else {
+            skipped += 1;
+            continue;
+        };
+
+        println!("[ {} ] {}", entry.name, cmd);
+        let work_dir = resolve_work_dir(entry.work_dir.as_deref());
+        let ok = std::process::Command::new("sh")
+            .arg("-c")
+            .arg(cmd)
+            .current_dir(&work_dir)
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false);
+
+        if ok {
+            println!("[ {} ] ok\n", entry.name);
+            passed += 1;
+        } else {
+            eprintln!("[ {} ] FAILED\n", entry.name);
+            failed += 1;
+        }
+    }
+
+    println!("preflight: {} passed, {} failed, {} skipped (no preflight)", passed, failed, skipped);
+    if failed > 0 {
+        std::process::exit(1);
+    }
 }
 
 fn resolve_work_dir(entry_work_dir: Option<&str>) -> String {
