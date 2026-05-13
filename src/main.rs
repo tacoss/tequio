@@ -41,6 +41,14 @@ struct Cli {
     #[arg(long)]
     install: bool,
 
+    /// Override work_dir for --preflight and --install
+    #[arg(long = "work_dir")]
+    work_dir_override: Option<String>,
+
+    /// Override repo_dir for --preflight and --install
+    #[arg(long = "repo_dir")]
+    repo_dir_override: Option<String>,
+
     /// Tasks to run (default: all)
     tasks: Vec<String>,
 }
@@ -63,7 +71,7 @@ async fn main() -> Result<(), turborepo_ui::Error> {
             std::process::exit(1);
         }
         let entries = filter_tasks(entries, &cli.tasks);
-        run_install(entries);
+        run_install(entries, cli.repo_dir_override.as_deref(), cli.work_dir_override.as_deref());
         return Ok(());
     }
 
@@ -74,7 +82,7 @@ async fn main() -> Result<(), turborepo_ui::Error> {
             std::process::exit(1);
         }
         let entries = filter_tasks(entries, &cli.tasks);
-        run_preflight(entries);
+        run_preflight(entries, cli.work_dir_override.as_deref());
         return Ok(());
     }
 
@@ -193,7 +201,7 @@ async fn main() -> Result<(), turborepo_ui::Error> {
     Ok(())
 }
 
-fn run_install(entries: Vec<config::TaskEntry>) {
+fn run_install(entries: Vec<config::TaskEntry>, repo_dir_override: Option<&str>, work_dir_override: Option<&str>) {
     let mut ran = 0usize;
     let mut failed = 0usize;
     let mut skipped = 0usize;
@@ -204,7 +212,12 @@ fn run_install(entries: Vec<config::TaskEntry>) {
             continue;
         };
 
-        let work_dir = resolve_work_dir(entry.repo_dir.as_deref().or(entry.work_dir.as_deref()));
+        let work_dir = resolve_work_dir(
+            repo_dir_override
+                .or(entry.repo_dir.as_deref())
+                .or(work_dir_override)
+                .or(entry.work_dir.as_deref())
+        );
         println!("[ {} ] {}", entry.name, cmd);
         let ok = std::process::Command::new("sh")
             .arg("-c")
@@ -229,7 +242,7 @@ fn run_install(entries: Vec<config::TaskEntry>) {
     }
 }
 
-fn run_preflight(entries: Vec<config::TaskEntry>) {
+fn run_preflight(entries: Vec<config::TaskEntry>, work_dir_override: Option<&str>) {
     let mut passed = 0usize;
     let mut failed = 0usize;
     let mut skipped = 0usize;
@@ -241,7 +254,7 @@ fn run_preflight(entries: Vec<config::TaskEntry>) {
         };
 
         println!("[ {} ] {}", entry.name, cmd);
-        let work_dir = resolve_work_dir(entry.work_dir.as_deref());
+        let work_dir = resolve_work_dir(work_dir_override.or(entry.work_dir.as_deref()));
         let ok = std::process::Command::new("sh")
             .arg("-c")
             .arg(cmd)
