@@ -11,14 +11,30 @@ A task orchestration CLI that runs shell commands with dependency resolution and
 - **Ready checks** — a task can declare a substring pattern that signals when it's ready, so dependents don't have to wait for full completion
 - **Interactive TUI** — real-time output from all tasks displayed in a terminal interface powered by a vendored fork of turborepo-ui
 - **Graceful shutdown** — press `Ctrl+C` to kill all running processes and exit cleanly
+- **Preflight checks** — run lint/test/build checks before pushing or opening a PR
+- **Install commands** — seed shared dependencies in the base repo, ready to be symlinked into worktrees
+- **asdf support** — `~/.asdf/shims` is always prepended to `PATH` for all child processes
 
 ## Usage
 
-```
-tequio <your-tasks.ini>
+```bash
+tequio                        # run all tasks
+tequio api database           # run specific tasks (and their dependencies)
+tequio --stop                 # kill orphan processes from a previous run
+tequio --preflight            # run preflight checks for all tasks
+tequio --preflight api        # run preflight checks for a specific task
+tequio --install              # run install commands for all tasks
+tequio --install front        # run install command for a specific task
 ```
 
-If no config file is given, it defaults to `tequio.ini` in the current directory.
+Override the working directory without editing `tequio.ini`:
+
+```bash
+tequio --preflight front --work_dir .worktrees/some-branch
+tequio --install front --repo_dir regulix-frontend
+```
+
+If no config file is given, it defaults to `tequio.ini` in the current directory. Use `-c` / `--config` to specify a different path.
 
 ### Keybindings
 
@@ -32,27 +48,49 @@ If no config file is given, it defaults to `tequio.ini` in the current directory
 Tasks are defined in an INI file. Each section is a task:
 
 ```ini
-[build]
-command = cargo build --release
+[database]
+command     = make pgup
+ready_check = database is ready
 
-[serve]
-command = ./target/release/myapp
-depends_on = build
+[api]
+repo_dir    = my-api
+work_dir    = .worktrees/feat-123
+command     = pnpm run dev
+install     = pnpm install
+preflight   = pnpm run lint && pnpm run test && pnpm run build
+depends_on  = database
 ready_check = listening on port
-
-[test]
-command = cargo test
-depends_on = build
 ```
 
 ### Fields
 
 | Field | Required | Description |
 |-------|----------|-------------|
-| `command` | yes | Shell command to execute (run via `sh -c`) |
-| `work_dir` | no | Set the working directory for the executed task |
-| `depends_on` | no | Name of another task(s) that must be ready first (comma-separated list for one or more tasks) |
-| `ready_check` | no | Substring to look for in stdout to signal readiness. If omitted, the task is considered ready as soon as it starts |
+| `command` | yes | Shell command to run (via `bash -c`) |
+| `repo_dir` | no | Base repo directory — source of truth for installs and worktree symlinking |
+| `work_dir` | no | Active working directory for running the process (can be a worktree path) |
+| `depends_on` | no | Task(s) that must be ready first (comma-separated) |
+| `ready_check` | no | Substring in stdout that signals readiness. If omitted, task is ready immediately |
+| `preflight` | no | Command to run with `--preflight` (e.g. lint, test, build) |
+| `install` | no | Command to run with `--install` (e.g. `pnpm install`) |
+
+### `repo_dir` vs `work_dir`
+
+Use both when working with git worktrees:
+
+- **`repo_dir`** — the base/main repository. Used by `--install` and `worktree-setup` to seed shared dependencies.
+- **`work_dir`** — the active directory tequio runs the process from. Can be a worktree path.
+
+When no worktree is active, `work_dir` alone is sufficient.
+
+```ini
+[front]
+repo_dir  = regulix-frontend                          # base repo, never changes
+work_dir  = .worktrees/feat-456                       # active worktree, swap as needed
+install   = pnpm install
+command   = pnpm run dev
+preflight = pnpm run lint && pnpm run build
+```
 
 ## Building
 
