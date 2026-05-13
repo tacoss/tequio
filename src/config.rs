@@ -11,6 +11,7 @@ pub struct TaskEntry {
     pub depends_on: Vec<String>,
     pub ready_check: Option<String>,
     pub preflight: Option<String>,
+    pub install: Option<String>,
 }
 
 /// Parse an INI file into task entries.
@@ -33,6 +34,7 @@ pub fn parse_ini(path: &str) -> Vec<TaskEntry> {
                 .unwrap_or_default();
             let ready_check = props.get("ready_check").map(|s| s.to_string());
             let preflight = props.get("preflight").map(|s| s.to_string());
+            let install = props.get("install").map(|s| s.to_string());
             Some(TaskEntry {
                 name,
                 command,
@@ -41,6 +43,7 @@ pub fn parse_ini(path: &str) -> Vec<TaskEntry> {
                 depends_on,
                 ready_check,
                 preflight,
+                install,
             })
         })
         .collect()

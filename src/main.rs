@@ -37,6 +37,10 @@ struct Cli {
     #[arg(long)]
     preflight: bool,
 
+    /// Run install commands defined in tequio.ini and exit
+    #[arg(long)]
+    install: bool,
+
     /// Tasks to run (default: all)
     tasks: Vec<String>,
 }
@@ -49,6 +53,17 @@ async fn main() -> Result<(), turborepo_ui::Error> {
         let mut pidfile = PidFile::new();
         let count = pidfile.load_and_kill_existing().await;
         println!("stopped {} orphan process(es)", count);
+        return Ok(());
+    }
+
+    if cli.install {
+        let entries = parse_ini(&cli.config);
+        if entries.is_empty() {
+            eprintln!("no tasks found in '{}'", cli.config);
+            std::process::exit(1);
+        }
+        let entries = filter_tasks(entries, &cli.tasks);
+        run_install(entries);
         return Ok(());
     }
 
@@ -176,6 +191,42 @@ async fn main() -> Result<(), turborepo_ui::Error> {
 
     let _ = tui_handle.await;
     Ok(())
+}
+
+fn run_install(entries: Vec<config::TaskEntry>) {
+    let mut ran = 0usize;
+    let mut failed = 0usize;
+    let mut skipped = 0usize;
+
+    for entry in &entries {
+        let Some(cmd) = &entry.install else {
+            skipped += 1;
+            continue;
+        };
+
+        let work_dir = resolve_work_dir(entry.repo_dir.as_deref().or(entry.work_dir.as_deref()));
+        println!("[ {} ] {}", entry.name, cmd);
+        let ok = std::process::Command::new("sh")
+            .arg("-c")
+            .arg(cmd)
+            .current_dir(&work_dir)
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false);
+
+        if ok {
+            println!("[ {} ] ok\n", entry.name);
+            ran += 1;
+        } else {
+            eprintln!("[ {} ] FAILED\n", entry.name);
+            failed += 1;
+        }
+    }
+
+    println!("install: {} ran, {} failed, {} skipped (no install)", ran, failed, skipped);
+    if failed > 0 {
+        std::process::exit(1);
+    }
 }
 
 fn run_preflight(entries: Vec<config::TaskEntry>) {
