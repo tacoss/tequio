@@ -21,6 +21,7 @@ pub async fn run_task(
 ) {
     let mut task = sender.task(name.clone());
     task.start(OutputLogs::Full);
+    writeln!(task, "cwd: {work_dir}").ok();
 
     if !dep_rxs.is_empty() {
         sender.status(

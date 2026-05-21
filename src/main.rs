@@ -24,6 +24,7 @@ use pidfile::PidFile;
 use runner::run_task;
 
 #[derive(Parser)]
+#[command(version = concat!(env!("CARGO_PKG_VERSION"), " (", env!("GIT_SHA"), ")"))]
 struct Cli {
     /// Path to INI config file
     #[arg(long, short, default_value = "tequio.ini")]
@@ -138,8 +139,8 @@ async fn main() -> Result<(), turborepo_ui::Error> {
             let shutdown = shutdown_rx.clone();
             let pf = pidfile.clone();
 
-            // Normalize the working directory of every task
-            let current_dir = resolve_work_dir(entry.work_dir.as_deref());
+            // work_dir is the cwd when present; repo_dir is the fallback when it's the only one set
+            let current_dir = resolve_work_dir(entry.work_dir.as_deref().or(entry.repo_dir.as_deref()));
 
             tokio::spawn(async move {
                 run_task(s, entry.name, entry.command, current_dir, entry.ready_check, ready_tx, dep_rxs, shutdown, pf).await;
@@ -255,7 +256,7 @@ fn run_preflight(entries: Vec<config::TaskEntry>, work_dir_override: Option<&str
         };
 
         println!("[ {} ] {}", entry.name, cmd);
-        let work_dir = resolve_work_dir(work_dir_override.or(entry.work_dir.as_deref()));
+        let work_dir = resolve_work_dir(work_dir_override.or(entry.work_dir.as_deref()).or(entry.repo_dir.as_deref()));
         let ok = std::process::Command::new("bash")
             .arg("-c")
             .arg(cmd)
