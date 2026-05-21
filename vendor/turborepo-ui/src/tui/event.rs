@@ -7,6 +7,10 @@ pub enum Event {
         task: String,
         output_logs: OutputLogs,
     },
+    SetWorkDir {
+        task: String,
+        work_dir: String,
+    },
     TaskOutput {
         task: String,
         output: Vec<u8>,

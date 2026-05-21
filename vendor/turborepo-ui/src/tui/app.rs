@@ -1017,6 +1017,11 @@ fn update(
         Event::StartTask { task, output_logs } => {
             app.start_task(&task, output_logs)?;
         }
+        Event::SetWorkDir { task, work_dir } => {
+            if let Some(output) = app.tasks.get_mut(&task) {
+                output.work_dir = Some(work_dir);
+            }
+        }
         Event::TaskOutput { task, output } => {
             app.process_output(&task, &output)?;
         }

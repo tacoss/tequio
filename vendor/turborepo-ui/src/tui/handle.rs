@@ -98,6 +98,12 @@ impl TuiSender {
             .map_err(|err| Error::Mpsc(err.to_string()))?)
     }
 
+    pub fn set_work_dir(&self, task: String, work_dir: String) {
+        self.primary
+            .send(Event::SetWorkDir { task, work_dir })
+            .ok();
+    }
+
     pub fn output(&self, task: String, output: Vec<u8>) -> Result<(), crate::Error> {
         Ok(self
             .primary

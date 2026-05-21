@@ -6,6 +6,7 @@ build:
 	@RUSTC_BOOTSTRAP=1 cargo build --release 2>&1
 install:
 	@cp target/release/tequio $(HOME)/.local/bin/tequio
+	@codesign -s - --force $(HOME)/.local/bin/tequio
 
 VENDOR_DIR = vendor/turborepo-ui
 TMP_DIR = /tmp/turborepo-ui-merge
