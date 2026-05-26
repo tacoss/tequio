@@ -12,6 +12,23 @@ pub struct TaskEntry {
     pub ready_check: Option<String>,
     pub preflight: Option<String>,
     pub install: Option<String>,
+    /// Ports (or ranges) to kill before starting this process, e.g. "3000,4000-4005"
+    pub ports: Vec<u16>,
+}
+
+fn parse_ports(s: &str) -> Vec<u16> {
+    let mut ports = Vec::new();
+    for part in s.split(',') {
+        let part = part.trim();
+        if let Some((start, end)) = part.split_once('-') {
+            if let (Ok(a), Ok(b)) = (start.trim().parse::<u16>(), end.trim().parse::<u16>()) {
+                ports.extend(a..=b);
+            }
+        } else if let Ok(p) = part.parse::<u16>() {
+            ports.push(p);
+        }
+    }
+    ports
 }
 
 /// Parse an INI file into task entries.
@@ -35,6 +52,7 @@ pub fn parse_ini(path: &str) -> Vec<TaskEntry> {
             let ready_check = props.get("ready_check").map(|s| s.to_string());
             let preflight = props.get("preflight").map(|s| s.to_string());
             let install = props.get("install").map(|s| s.to_string());
+            let ports = props.get("ports").map(|s| parse_ports(s)).unwrap_or_default();
             Some(TaskEntry {
                 name,
                 command,
@@ -44,6 +62,7 @@ pub fn parse_ini(path: &str) -> Vec<TaskEntry> {
                 ready_check,
                 preflight,
                 install,
+                ports,
             })
         })
         .collect()

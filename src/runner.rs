@@ -8,11 +8,33 @@ use turborepo_ui::tui::{self, TuiSender, event::OutputLogs};
 
 use crate::pidfile::PidFile;
 
+async fn kill_ports(ports: &[u16]) -> Vec<String> {
+    let mut log = Vec::new();
+    for &port in ports {
+        let Ok(result) = Command::new("lsof")
+            .args(["-ti", &format!(":{port}")])
+            .output()
+            .await
+        else {
+            continue;
+        };
+        for pid_str in String::from_utf8_lossy(&result.stdout).split_whitespace() {
+            if pid_str.parse::<u32>().is_ok() {
+                if Command::new("kill").args(["-9", pid_str]).output().await.is_ok() {
+                    log.push(format!("killed PID {pid_str} on port {port}"));
+                }
+            }
+        }
+    }
+    log
+}
+
 pub async fn run_task(
     sender: TuiSender,
     name: String,
     command: String,
     work_dir: String,
+    ports: Vec<u16>,
     ready_check: Option<String>,
     ready_tx: watch::Sender<bool>,
     dep_rxs: Vec<watch::Receiver<bool>>,
@@ -55,6 +77,12 @@ pub async fn run_task(
         "running".into(),
         tui::event::CacheResult::Miss,
     );
+
+    if !ports.is_empty() {
+        for line in kill_ports(&ports).await {
+            writeln!(task, "{line}").ok();
+        }
+    }
 
     let asdf_path = {
         let home = std::env::var("HOME").unwrap_or_default();

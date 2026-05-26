@@ -5,6 +5,7 @@ run:
 build:
 	@RUSTC_BOOTSTRAP=1 cargo build --release 2>&1
 install:
+	@rm -f $(HOME)/.local/bin/tequio
 	@cp target/release/tequio $(HOME)/.local/bin/tequio
 	@codesign -s - --force $(HOME)/.local/bin/tequio
 

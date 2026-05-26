@@ -143,7 +143,7 @@ async fn main() -> Result<(), turborepo_ui::Error> {
             let current_dir = resolve_work_dir(entry.work_dir.as_deref().or(entry.repo_dir.as_deref()));
 
             tokio::spawn(async move {
-                run_task(s, entry.name, entry.command, current_dir, entry.ready_check, ready_tx, dep_rxs, shutdown, pf).await;
+                run_task(s, entry.name, entry.command, current_dir, entry.ports, entry.ready_check, ready_tx, dep_rxs, shutdown, pf).await;
             })
         })
         .collect();
