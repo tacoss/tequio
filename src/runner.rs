@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::io::Write;
 use std::sync::Arc;
 
@@ -33,6 +34,7 @@ pub async fn run_task(
     sender: TuiSender,
     name: String,
     command: String,
+    env: HashMap<String, String>,
     work_dir: String,
     ports: Vec<u16>,
     ready_check: Option<String>,
@@ -93,6 +95,7 @@ pub async fn run_task(
     let child = Command::new("bash")
         .args(["-c", &command])
         .current_dir(work_dir)
+        .envs(&env)
         .env("PATH", asdf_path)
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())

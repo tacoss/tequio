@@ -143,7 +143,7 @@ async fn main() -> Result<(), turborepo_ui::Error> {
             let current_dir = resolve_work_dir(entry.work_dir.as_deref().or(entry.repo_dir.as_deref()));
 
             tokio::spawn(async move {
-                run_task(s, entry.name, entry.command, current_dir, entry.ports, entry.ready_check, ready_tx, dep_rxs, shutdown, pf).await;
+                run_task(s, entry.name, entry.command, entry.env, current_dir, entry.ports, entry.ready_check, ready_tx, dep_rxs, shutdown, pf).await;
             })
         })
         .collect();
@@ -224,6 +224,7 @@ fn run_install(entries: Vec<config::TaskEntry>, repo_dir_override: Option<&str>,
             .arg("-c")
             .arg(cmd)
             .current_dir(&work_dir)
+            .envs(&entry.env)
             .env("PATH", asdf_path())
             .status()
             .map(|s| s.success())
@@ -261,6 +262,7 @@ fn run_preflight(entries: Vec<config::TaskEntry>, work_dir_override: Option<&str
             .arg("-c")
             .arg(cmd)
             .current_dir(&work_dir)
+            .envs(&entry.env)
             .env("PATH", asdf_path())
             .status()
             .map(|s| s.success())

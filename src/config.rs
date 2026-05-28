@@ -14,6 +14,9 @@ pub struct TaskEntry {
     pub install: Option<String>,
     /// Ports (or ranges) to kill before starting this process, e.g. "3000,4000-4005"
     pub ports: Vec<u16>,
+    /// Environment variables injected into the spawned process.
+    /// Populated from UPPER_CASE fields in the INI section.
+    pub env: HashMap<String, String>,
 }
 
 fn parse_ports(s: &str) -> Vec<u16> {
@@ -53,6 +56,12 @@ pub fn parse_ini(path: &str) -> Vec<TaskEntry> {
             let preflight = props.get("preflight").map(|s| s.to_string());
             let install = props.get("install").map(|s| s.to_string());
             let ports = props.get("ports").map(|s| parse_ports(s)).unwrap_or_default();
+            let mut env = HashMap::new();
+            for (key, value) in props.iter() {
+                if key.chars().all(|c| c.is_uppercase() || c == '_' || c.is_ascii_digit()) {
+                    env.insert(key.to_string(), value.to_string());
+                }
+            }
             Some(TaskEntry {
                 name,
                 command,
@@ -63,6 +72,7 @@ pub fn parse_ini(path: &str) -> Vec<TaskEntry> {
                 preflight,
                 install,
                 ports,
+                env,
             })
         })
         .collect()

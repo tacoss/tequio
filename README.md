@@ -73,6 +73,23 @@ ready_check = listening on port
 | `ready_check` | no | Substring in stdout that signals readiness. If omitted, task is ready immediately |
 | `preflight` | no | Command to run with `--preflight` (e.g. lint, test, build) |
 | `install` | no | Command to run with `--install` (e.g. `pnpm install`) |
+| `*` (UPPER_CASE) | no | Any UPPER_CASE key is injected as an environment variable for the spawned process |
+
+### Environment Variables
+
+Any UPPER_CASE key in a task section is automatically injected as an environment variable when the process spawns. Lowercase keys (`command`, `work_dir`, etc.) are treated as config fields and are never passed to the process.
+
+```ini
+[api]
+command     = pnpm run dev
+NODE_ENV    = development
+DATABASE_URL = postgres://localhost:5432/myapp
+LOG_LEVEL   = debug
+```
+
+These work in all modes — `tequio`, `tequio --preflight`, and `tequio --install`.
+
+Note: `PATH` is always managed by tequio (asdf shims are prepended) regardless of whether you set it as an env var.
 
 ### `repo_dir` vs `work_dir`
 
@@ -90,6 +107,13 @@ work_dir  = .worktrees/feat-456                       # active worktree, swap as
 install   = pnpm install
 command   = pnpm run dev
 preflight = pnpm run lint && pnpm run build
+
+[api]
+command     = pnpm run dev
+NODE_ENV    = development
+DATABASE_URL = postgres://localhost:5432/myapp
+depends_on  = database
+ready_check = listening on port
 ```
 
 ## Building
