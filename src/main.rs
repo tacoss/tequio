@@ -42,6 +42,10 @@ struct Cli {
     #[arg(long)]
     install: bool,
 
+    /// Show tequio-managed process status (reads pidfile) and exit
+    #[arg(long)]
+    status: bool,
+
     /// Override work_dir for --preflight and --install
     #[arg(long = "work_dir")]
     work_dir_override: Option<String>,
@@ -84,6 +88,11 @@ async fn main() -> Result<(), turborepo_ui::Error> {
         }
         let entries = filter_tasks(entries, &cli.tasks);
         run_preflight(entries, cli.work_dir_override.as_deref());
+        return Ok(());
+    }
+
+    if cli.status {
+        run_status();
         return Ok(());
     }
 
@@ -243,6 +252,45 @@ fn run_install(entries: Vec<config::TaskEntry>, repo_dir_override: Option<&str>,
     if failed > 0 {
         std::process::exit(1);
     }
+}
+
+fn run_status() {
+    let pidfile_path = std::env::temp_dir().join("tequio-pids.txt");
+    let contents = match std::fs::read_to_string(&pidfile_path) {
+        Ok(c) => c,
+        Err(_) => {
+            println!("tequio: no managed processes (pidfile not found at {})", pidfile_path.display());
+            std::process::exit(1);
+        }
+    };
+
+    let pids: Vec<u32> = contents
+        .lines()
+        .filter_map(|l| l.trim().parse::<u32>().ok())
+        .collect();
+
+    if pids.is_empty() {
+        println!("tequio: pidfile exists but contains no valid PIDs ({})", pidfile_path.display());
+        std::process::exit(1);
+    }
+
+    let alive: Vec<u32> = pids
+        .into_iter()
+        .filter(|&pid| {
+            std::process::Command::new("kill")
+                .args(["-0", &pid.to_string()])
+                .status()
+                .map(|s| s.success())
+                .unwrap_or(false)
+        })
+        .collect();
+
+    if alive.is_empty() {
+        println!("tequio: managed processes registered but none are still running");
+        std::process::exit(1);
+    }
+
+    println!("tequio: {} managed process(es) running", alive.len());
 }
 
 fn run_preflight(entries: Vec<config::TaskEntry>, work_dir_override: Option<&str>) {
